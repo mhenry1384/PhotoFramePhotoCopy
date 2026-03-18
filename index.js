@@ -68,27 +68,33 @@ async function copyImages(sourceFile, destFolder, count, maxWidth, maxHeight) {
       counter++;
     }
 
-    // Copy and resize if needed
-    if (
-      path.extname(imgPath).toLowerCase() === ".jpg" ||
-      path.extname(imgPath).toLowerCase() === ".jpeg"
-    ) {
-      const metadata = await sharp(imgPath).metadata();
-      if (metadata.width > maxWidth || metadata.height > maxHeight) {
-        // Resize
-        await sharp(imgPath)
-          .resize(maxWidth, maxHeight, {
-            fit: "inside",
-            withoutEnlargement: true,
-          })
-          .toFile(destPath);
+    try {
+      // Copy and resize if needed
+      if (
+        path.extname(imgPath).toLowerCase() === ".jpg" ||
+        path.extname(imgPath).toLowerCase() === ".jpeg"
+      ) {
+        const metadata = await sharp(imgPath).metadata();
+        if (metadata.width > maxWidth || metadata.height > maxHeight) {
+          // Resize
+          await sharp(imgPath)
+            .resize(maxWidth, maxHeight, {
+              fit: "inside",
+              withoutEnlargement: true,
+            })
+            .toFile(destPath);
+        } else {
+          await fs.copy(imgPath, destPath);
+        }
       } else {
         await fs.copy(imgPath, destPath);
       }
-    } else {
-      await fs.copy(imgPath, destPath);
+
+      console.log(`Copied ${imgPath} to ${destPath}`);
+    } catch (error) {
+      console.error(`Failed to process image: ${imgPath}`);
+      console.error(error);
     }
-    console.log(`Copied ${imgPath} to ${destPath}`);
   }
 }
 

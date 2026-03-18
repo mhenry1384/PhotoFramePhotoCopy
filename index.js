@@ -78,6 +78,8 @@ async function copyImages(sourceFile, destFolder, count, maxWidth, maxHeight) {
         if (metadata.width > maxWidth || metadata.height > maxHeight) {
           // Resize
           await sharp(imgPath)
+            // Keep EXIF and other metadata on output images.
+            .withMetadata()
             .resize(maxWidth, maxHeight, {
               fit: "inside",
               withoutEnlargement: true,

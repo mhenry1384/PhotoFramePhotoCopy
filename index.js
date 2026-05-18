@@ -28,7 +28,7 @@ function isImage(file) {
   return imageExtensions.includes(ext);
 }
 
-async function scanFolder(source, dest) {
+async function scanFolder(source) {
   const images = [];
   async function scan(dir) {
     const items = await fs.readdir(dir);
@@ -43,14 +43,13 @@ async function scanFolder(source, dest) {
     }
   }
   await scan(source);
-  await fs.writeJson(dest, images);
-  console.log(`Scanned ${images.length} images and saved to ${dest}`);
+  return images;
 }
 
-async function copyImages(sourceFile, destFolder, count, maxWidth, maxHeight) {
-  const images = await fs.readJson(sourceFile);
+async function copyImages(sourceFolder, destFolder, count, maxWidth, maxHeight) {
+  const images = await scanFolder(sourceFolder);
   if (images.length === 0) {
-    console.log("No images in source file");
+    console.log("No images found in source folder");
     return;
   }
   // Shuffle and take count
@@ -69,24 +68,21 @@ async function copyImages(sourceFile, destFolder, count, maxWidth, maxHeight) {
     }
 
     try {
-      // Copy and resize if needed
-      if (
-        path.extname(imgPath).toLowerCase() === ".jpg" ||
-        path.extname(imgPath).toLowerCase() === ".jpeg"
-      ) {
+      const ext = path.extname(imgPath).toLowerCase();
+      if (ext === ".jpg" || ext === ".jpeg") {
+        const relativePath = path.relative(sourceFolder, imgPath).replace(/\\/g, "/");
         const metadata = await sharp(imgPath).metadata();
+        const pipeline = sharp(imgPath).withMetadata({
+          exif: {
+            IFD0: { ImageDescription: relativePath },
+          },
+        });
         if (metadata.width > maxWidth || metadata.height > maxHeight) {
-          // Resize
-          await sharp(imgPath)
-            // Keep EXIF and other metadata on output images.
-            .withMetadata()
-            .resize(maxWidth, maxHeight, {
-              fit: "inside",
-              withoutEnlargement: true,
-            })
+          await pipeline
+            .resize(maxWidth, maxHeight, { fit: "inside", withoutEnlargement: true })
             .toFile(destPath);
         } else {
-          await fs.copy(imgPath, destPath);
+          await pipeline.toFile(destPath);
         }
       } else {
         await fs.copy(imgPath, destPath);
@@ -114,28 +110,11 @@ async function cleanFolder(destFolder) {
 
 const argv = yargs(hideBin(process.argv))
   .command(
-    "scan <source> <dest>",
-    "Scan source folder for images and save list to dest file",
-    (yargs) => {
-      yargs.positional("source", {
-        describe: "Source folder to scan",
-        type: "string",
-      });
-      yargs.positional("dest", {
-        describe: "Destination file to save image list",
-        type: "string",
-      });
-    },
-    async (argv) => {
-      await scanFolder(argv.source, argv.dest);
-    },
-  )
-  .command(
     "copy <source> <dest> <count> <maxWidth> <maxHeight>",
-    "Copy random images from source file to dest folder",
+    "Copy random images from source folder to dest folder",
     (yargs) => {
       yargs.positional("source", {
-        describe: "Source file with image list",
+        describe: "Source folder to scan for images",
         type: "string",
       });
       yargs.positional("dest", {

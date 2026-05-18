@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd /c mycopy.bat)",
+      "Bash(node index.js copy \"C:\\\\Users\\\\mhenr\\\\Pictures\" \"C:\\\\Temp\\\\PhotoFrame\" 2000 1920 1200)",
+      "Bash(npm install *)"
+    ]
+  }
+}

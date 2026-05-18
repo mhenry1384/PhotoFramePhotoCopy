@@ -1,73 +1,69 @@
 # Photo Frame Photo Copy
 
-A Node.js application for managing images: scanning folders, copying random selections with resizing, and cleaning folders.
+A Node.js tool that randomly selects photos from a source folder tree, optionally resizes them, and copies them to a destination folder — suitable for populating a digital photo frame.
 
 ## Installation
 
-1. Install Node.js (version 14 or higher).
-2. Clone or download this repository.
-3. Run `npm install` to install dependencies.
+1. Install [Node.js](https://nodejs.org/) (v14 or higher)
+2. Clone this repository
+3. Run `npm install`
 
-## Usage
+## Commands
 
-The application accepts a JSON config file named `config.json` in the root directory (optional).
+### copy
 
-### Commands
-
-#### Scan
-
-Scan a folder and subfolders for images and save the list to a JSON file.
+Scan a source folder recursively for images, pick a random selection, and copy them to a destination folder.
 
 ```
-node index.js scan <source_folder> <dest_file>
+node index.js copy <source_folder> <dest_folder> <count> <maxWidth> <maxHeight>
 ```
 
-Example:
+| Argument | Description |
+|---|---|
+| `source_folder` | Folder tree to scan for images |
+| `dest_folder` | Folder to copy selected images into |
+| `count` | Number of images to copy |
+| `maxWidth` | Maximum output width in pixels (JPEGs only) |
+| `maxHeight` | Maximum output height in pixels (JPEGs only) |
 
+**Example:**
 ```
-node index.js scan /path/to/photos images.json
-```
-
-#### Copy
-
-Copy a random selection of images from a JSON list to a folder, resizing JPGs if necessary.
-
-```
-node index.js copy <source_file> <dest_folder> <count> <maxWidth> <maxHeight>
-```
-
-Example:
-
-```
-node index.js copy images.json /path/to/output 10 1920 1080
+node index.js copy "C:\Photos" "C:\Frame" 50 1920 1080
 ```
 
-#### Clean
+JPEG files are resized to fit within `maxWidth`×`maxHeight` if they exceed those dimensions (aspect ratio preserved, never upscaled). All other formats are copied as-is.
 
-Remove all files in the root of a folder.
+#### EXIF handling (JPEG)
+
+- All existing EXIF metadata is preserved, including `DateTimeOriginal`.
+- The `ImageDescription` field is set to the relative path of the source file within `source_folder` (e.g. `2024/Vacation/beach.jpg`).
+
+### clean
+
+Remove all files from a folder (does not recurse into subdirectories).
 
 ```
 node index.js clean <dest_folder>
 ```
 
-Example:
-
+**Example:**
 ```
-node index.js clean /path/to/output
+node index.js clean "C:\Frame"
 ```
 
-### Windows Batch Files
+## Windows Batch Files
 
-- `scan.bat`: Run `scan.bat "C:\source" "images.json"`
-- `copy.bat`: Run `copy.bat "images.json" "C:\output" 5 800 600`
-- `clean.bat`: Run `clean.bat "C:\output"`
+- `copy.bat <source_folder> <dest_folder> <count> <maxWidth> <maxHeight>`
+- `clean.bat <dest_folder>`
 
 ## Supported Image Formats
 
-- JPG, JPEG, PNG, GIF, BMP, TIFF, WebP
+JPG, JPEG, PNG, GIF, BMP, TIFF, WebP
 
 ## Dependencies
 
-- sharp: For image resizing
-- yargs: For command-line parsing
-- fs-extra: For enhanced file operations
+| Package | Purpose |
+|---|---|
+| [sharp](https://sharp.pixelplumbing.com/) | JPEG resizing and EXIF handling |
+| [yargs](https://yargs.js.org/) | Command-line argument parsing |
+| [fs-extra](https://github.com/jprichardson/node-fs-extra) | Enhanced file system operations |

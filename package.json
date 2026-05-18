@@ -7,9 +7,9 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "sharp": "^0.33.0",
-    "yargs": "^17.7.2",
-    "fs-extra": "^11.2.0"
+    "fs-extra": "^11.2.0",
+    "sharp": "^0.33.5",
+    "yargs": "^17.7.2"
   },
   "engines": {
     "node": ">=14.0.0"

@@ -28,6 +28,30 @@ function isImage(file) {
   return imageExtensions.includes(ext);
 }
 
+async function addGifComment(filePath, comment) {
+  const data = await fs.readFile(filePath);
+  // Skip header (6) + logical screen descriptor (7)
+  let offset = 13;
+  if (data[10] & 0x80) {
+    offset += 3 * Math.pow(2, (data[10] & 0x07) + 1);
+  }
+  const commentBytes = Buffer.from(comment, "ascii");
+  const subBlocks = [];
+  for (let i = 0; i < commentBytes.length; i += 255) {
+    const chunk = commentBytes.subarray(i, i + 255);
+    subBlocks.push(Buffer.from([chunk.length]), chunk);
+  }
+  const commentBlock = Buffer.concat([
+    Buffer.from([0x21, 0xfe]),
+    ...subBlocks,
+    Buffer.from([0x00]),
+  ]);
+  await fs.writeFile(
+    filePath,
+    Buffer.concat([data.subarray(0, offset), commentBlock, data.subarray(offset)]),
+  );
+}
+
 async function scanFolder(source) {
   const images = [];
   async function scan(dir) {
@@ -69,13 +93,11 @@ async function copyImages(sourceFolder, destFolder, count, maxWidth, maxHeight) 
 
     try {
       const ext = path.extname(imgPath).toLowerCase();
+      const relativePath = path.relative(sourceFolder, imgPath).replace(/\\/g, "/");
       if (ext === ".jpg" || ext === ".jpeg") {
-        const relativePath = path.relative(sourceFolder, imgPath).replace(/\\/g, "/");
         const metadata = await sharp(imgPath).metadata();
         const pipeline = sharp(imgPath).withMetadata({
-          exif: {
-            IFD0: { ImageDescription: relativePath },
-          },
+          exif: { IFD0: { ImageDescription: relativePath } },
         });
         if (metadata.width > maxWidth || metadata.height > maxHeight) {
           await pipeline
@@ -84,6 +106,13 @@ async function copyImages(sourceFolder, destFolder, count, maxWidth, maxHeight) 
         } else {
           await pipeline.toFile(destPath);
         }
+      } else if (ext === ".png") {
+        await sharp(imgPath)
+          .withMetadata({ exif: { IFD0: { ImageDescription: relativePath } } })
+          .toFile(destPath);
+      } else if (ext === ".gif") {
+        await fs.copy(imgPath, destPath);
+        await addGifComment(destPath, relativePath);
       } else {
         await fs.copy(imgPath, destPath);
       }

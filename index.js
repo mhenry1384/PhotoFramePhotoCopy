@@ -21,6 +21,7 @@ const imageExtensions = [
   ".bmp",
   ".tiff",
   ".webp",
+  ".heic",
 ];
 
 function isImage(file) {
